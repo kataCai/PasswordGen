@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_marginLeft="30dp"
+    android:layout_marginRight="30dp"
+    android:layout_marginTop="20dp"
+    android:orientation="vertical">
+
+    <com.keepmoving.yuan.passwordgen.widget.PwdEditText
+        android:id="@+id/key_text"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@null"
+        android:drawableLeft="@mipmap/icon_login_pwd"
+        android:drawablePadding="10.67dp"
+        android:hint="您的秘钥"
+        android:inputType="textPassword"
+        android:textColorHint="@color/text_hint_color"
+        android:textSize="15sp"
+        app:theme="@style/StyleEditTextUnderLine" />
+    
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0.33dp"
+        android:background="@color/clear_edit_text_line_color" />
+
+    <com.keepmoving.yuan.passwordgen.widget.ClearEditText
+        app:theme="@style/StyleEditTextUnderLine"
+        android:id="@+id/domain_text"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@null"
+        android:drawableLeft="@mipmap/icon_login_tel"
+        android:drawablePadding="10.67dp"
+        android:hint="服务商"
+        android:textColorHint="@color/text_hint_color"
+        android:textSize="15sp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0.33dp"
+        android:background="@color/clear_edit_text_line_color" />
+
+    <com.keepmoving.yuan.passwordgen.widget.ClearEditText
+        android:id="@+id/username_text"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@null"
+        android:drawableLeft="@mipmap/icon_login_tel"
+        android:drawablePadding="10.67dp"
+        android:hint="用户名"
+        android:textColorHint="@color/text_hint_color"
+        android:textSize="15sp"
+        app:theme="@style/StyleEditTextUnderLine" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0.33dp"
+        android:background="@color/clear_edit_text_line_color" />
+
+    <com.keepmoving.yuan.passwordgen.widget.ClearEditText
+        android:id="@+id/code_text"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@null"
+        android:drawableLeft="@mipmap/icon_login_tel"
+        android:drawablePadding="10.67dp"
+        android:hint="密码版本号 (默认1)"
+        android:inputType="number"
+        android:textColorHint="@color/text_hint_color"
+        android:textSize="15sp"
+        app:theme="@style/StyleEditTextUnderLine"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0.33dp"
+        android:background="@color/clear_edit_text_line_color" />
+
+    <com.keepmoving.yuan.passwordgen.widget.ClearEditText
+        android:id="@+id/length_text"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@null"
+        android:drawableLeft="@mipmap/icon_login_tel"
+        android:drawablePadding="10.67dp"
+        android:hint="密码位数 (默认6)"
+        android:inputType="number"
+        android:textColorHint="@color/text_hint_color"
+        android:textSize="15sp"
+        app:theme="@style/StyleEditTextUnderLine" />
+    
+    <RadioGroup
+        android:layout_marginTop="13dp"
+        android:id="@+id/type_group"
+        android:orientation="horizontal"
+        android:weightSum="2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        
+        <RadioButton
+            android:id="@+id/number_check"
+            style="@style/AppTheme.CircleCheckBox"
+            android:paddingLeft="5dp"
+            android:checked="true"
+            android:text="纯数字"
+            android:textColor="@color/text_hint_color"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content" />
+
+        <RadioButton
+            android:id="@+id/mix_check"
+            android:paddingLeft="5dp"
+            style="@style/AppTheme.CircleCheckBox"
+            android:layout_marginLeft="25dp"
+            android:textColor="@color/text_hint_color"
+            android:layout_weight="1"
+            android:text="混合"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content" />
+    </RadioGroup>
+
+    <TextView
+
+        android:layout_marginTop="15dp"
+        android:id="@+id/btn_create"
+        style="@style/NormalSubmitButton"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginLeft="30dp"
+        android:layout_marginRight="30dp"
+        android:enabled="true"
+        android:gravity="center"
+        android:text="生成密码"/>
+
+
+    <EditText
+        android:id="@+id/passwrod_result"
+        android:background="@null"
+        android:textColor="@android:color/holo_blue_light"
+        android:inputType="none"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="42dp"
+        android:fontFamily="sans-serif"
+        android:textSize="35sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+</LinearLayout>

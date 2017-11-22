@@ -1,0 +1,28 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+
+    <style name="StyleEditTextUnderLine" parent="AppTheme">
+        <item name="colorControlNormal">@color/text_hint_color</item>
+        <item name="colorControlActivated">@color/text_hint_color</item>
+    </style>
+
+    <!-- 提交按钮矩形通用样式 -->
+    <style name="NormalSubmitButton" parent="@style/Widget.AppCompat.Button.Borderless">
+        <item name="android:background">@drawable/normal_submit_btn_selector</item>
+        <item name="android:textSize">@dimen/submit_btn_textsize</item>
+        <item name="android:textColor">@color/normal_submit_btn_text_color</item>
+    </style>
+
+
+    <style name="AppTheme.CircleCheckBox" parent="@android:style/Widget.CompoundButton.CheckBox">
+        <item name="android:button">@drawable/checkbox_selector</item>
+    </style>
+</resources>

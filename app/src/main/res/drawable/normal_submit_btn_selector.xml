@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:state_pressed="true">
+        <shape>
+            <solid android:color="@color/normal_submit_btn_press_color" />
+            <corners android:radius="@dimen/submit_btn_border_radius" />
+        </shape>
+    </item>
+
+    <item android:state_enabled="false">
+        <shape>
+            <solid android:color="@color/normal_submit_btn_disable_color" />
+            <corners android:radius="@dimen/submit_btn_border_radius" />
+        </shape>
+    </item>
+
+    <item>
+        <shape>
+            <solid android:color="@color/normal_submit_btn_enable_color" />
+            <corners android:radius="@dimen/submit_btn_border_radius" />
+        </shape>
+    </item>
+
+</selector>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <color name="text_hint_color">#FFB5B5B5</color>
+    <color name="clear_edit_text_line_color">#909090</color>
+    <color name="normal_submit_btn_disable_color">#FFCFCFCF</color>
+    <color name="normal_submit_btn_press_color">#FF22232A</color>
+    <color name="normal_submit_btn_enable_color">#FF414450</color>
+    <color name="normal_submit_btn_text_color">#FFFFFFFF</color>
+    <color name="black_alpha_60">#99000000</color>
+
+</resources>
