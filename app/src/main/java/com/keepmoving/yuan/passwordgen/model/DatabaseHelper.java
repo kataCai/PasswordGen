@@ -135,6 +135,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return getMatchKey(keyBean.getSupport(), keyBean.getUsername()) != null;
     }
 
+    boolean hasMathSupport(String supportName) {
+        initReadDatabase();
+
+        Cursor cursor = mReadDatabase.query(SUPPORT_TABLE_NAME, new String[]{SupportColumns.NAME},
+                SupportColumns.NAME + " = ?", new String[]{supportName},
+                null, null, null, null);
+        return cursor.moveToFirst();
+    }
+
     void createOrUpdateKey(KeyBean keyBean) {
         initWriteDatabase();
         ContentValues contentValues = new ContentValues();
@@ -153,6 +162,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         } else {
             mWriteDatabase.insert(KEY_TABLE_NAME, null, contentValues);
+        }
+
+        if (!hasMathSupport(keyBean.getSupport())) {
+            ContentValues supportValue = new ContentValues();
+            supportValue.put(SupportColumns.NAME, keyBean.getSupport());
+            mWriteDatabase.insert(SUPPORT_TABLE_NAME, null, supportValue);
         }
     }
 

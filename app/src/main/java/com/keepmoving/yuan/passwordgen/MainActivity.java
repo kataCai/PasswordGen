@@ -33,6 +33,11 @@ public class MainActivity extends Activity implements View.OnClickListener, Adap
     private static final String PREFERENCE_NAME = "com.keepmoving.yuan.passwordgen";
     private static final String PRIVATE_KEY = "private_key";
 
+    private static final String SAVE_KEY_SUPPORT = "support";
+    private static final String SAVE_KEY_USERNAME = "username";
+    private static final String SAVE_KEY_VERSION = "version";
+    private static final String SAVE_KEY_LEN = "len";
+
     private PwdEditText keyText;
     private ClearEditText domainText;
     private ClearEditText usernameText;
@@ -74,7 +79,17 @@ public class MainActivity extends Activity implements View.OnClickListener, Adap
 
         domainText.setOnItemClickListener(this);
         usernameText.setOnItemClickListener(this);
-        initData();
+
+        initData(savedInstanceState);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(SAVE_KEY_SUPPORT, domainText.getText().toString());
+        outState.putString(SAVE_KEY_USERNAME, usernameText.getText().toString());
+        outState.putString(SAVE_KEY_VERSION, codeText.getText().toString());
+        outState.putString(SAVE_KEY_LEN, lengthText.getText().toString());
     }
 
     @Override
@@ -95,7 +110,7 @@ public class MainActivity extends Activity implements View.OnClickListener, Adap
         handler.post(getKeyRunnable);
     }
 
-    private void initData() {
+    private void initData(Bundle savedInstanceState) {
         domainAdapter = new ObscureArrayAdapter(this, R.layout.text_item,
                 R.id.text_view, ObscureArrayAdapter.DATA_TYPE_DOMAIN);
         usernameAdapter = new ObscureArrayAdapter(this, R.layout.text_item,
@@ -110,6 +125,26 @@ public class MainActivity extends Activity implements View.OnClickListener, Adap
         String privateKey = sharedPreferences.getString(PRIVATE_KEY, "");
         if (!TextUtils.isEmpty(privateKey)) {
             keyText.setText(privateKey);
+        }
+
+        if (savedInstanceState != null) {
+            String support = savedInstanceState.getString(SAVE_KEY_SUPPORT);
+            String username = savedInstanceState.getString(SAVE_KEY_USERNAME);
+            String version = savedInstanceState.getString(SAVE_KEY_VERSION);
+            String len = savedInstanceState.getString(SAVE_KEY_LEN);
+
+            if (!TextUtils.isEmpty(support)) {
+                domainText.setText(support);
+            }
+            if (!TextUtils.isEmpty(username)) {
+                usernameText.setText(username);
+            }
+            if (!TextUtils.isEmpty(version)) {
+                codeText.setText(version);
+            }
+            if (!TextUtils.isEmpty(len)) {
+                lengthText.setText(len);
+            }
         }
     }
 
