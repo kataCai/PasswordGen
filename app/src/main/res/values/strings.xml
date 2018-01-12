@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">个人密码</string>
+    <string name="error_network">网络请求失败，请稍候再试</string>
 </resources>

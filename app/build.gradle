@@ -10,6 +10,10 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        //是否开启调试，用来记录开启log的, 内部release用到
+        buildConfigField "boolean", "IS_DEBUG", "true"
+        buildConfigField "String", "HOST", SERVER_HOST
     }
     buildTypes {
         release {
@@ -27,4 +31,9 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.+'
     testCompile 'junit:junit:4.12'
     compile files('libs/PasswordCore.jar')
+
+    compile 'com.jakewharton:butterknife:8.4.0'
+    compile 'com.squareup.retrofit2:retrofit:2.1.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.1.0'
+    compile 'com.orhanobut:logger:2.1.1'
 }

@@ -1,9 +1,9 @@
 package com.keepmoving.yuan.passwordgen.model;
 
-import android.content.Context;
-
-import com.keepmoving.yuan.passwordgen.MainApplication;
 import com.keepmoving.yuan.passwordgen.model.bean.KeyBean;
+import com.keepmoving.yuan.passwordgen.model.bean.UserBean;
+import com.keepmoving.yuan.passwordgen.model.iaccess.IKeyAccess;
+import com.keepmoving.yuan.passwordgen.model.iaccess.IUserAccess;
 
 import java.util.List;
 
@@ -11,15 +11,12 @@ import java.util.List;
  * Created by caihanyuan on 2017/11/19.
  */
 
-public class DatabaseManager {
+public class DatabaseManager implements IKeyAccess, IUserAccess {
 
     private static DatabaseManager sInstance;
     private final static int DATABASE_VERSION = 1;
-    private final static String DATABASE_NAME = "passwords.db";
 
-    private Context mContext;
     private DatabaseHelper mDataHelper;
-
 
     public static DatabaseManager getInstance() {
         if (sInstance == null) {
@@ -33,8 +30,7 @@ public class DatabaseManager {
     }
 
     private DatabaseManager() {
-        mContext = MainApplication.getContext();
-        mDataHelper = new DatabaseHelper(mContext, DATABASE_NAME, null, DATABASE_VERSION);
+        mDataHelper = DatabaseHelper.getInstance(DATABASE_VERSION);
     }
 
     /**
@@ -94,6 +90,26 @@ public class DatabaseManager {
      * @return
      */
     public boolean hasMatchKey(KeyBean keyBean) {
-        return mDataHelper.hasMathKey(keyBean);
+        return mDataHelper.hasMatchKey(keyBean);
+    }
+
+    @Override
+    public boolean isLogin() {
+        return SharePreferenceData.isLogin();
+    }
+
+    @Override
+    public void login(UserBean userBean) {
+        mDataHelper.login(userBean);
+    }
+
+    @Override
+    public void logOut() {
+        mDataHelper.logOut();
+    }
+
+    @Override
+    public UserBean getLoginUser() {
+        return mDataHelper.getLoginUser();
     }
 }

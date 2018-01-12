@@ -1,6 +1,5 @@
 package com.keepmoving.yuan.passwordgen;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -9,7 +8,11 @@ import android.os.Handler;
 import android.support.annotation.IdRes;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -18,6 +21,7 @@ import android.widget.Filter;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
+import com.keepmoving.yuan.passwordgen.model.DataCenter;
 import com.keepmoving.yuan.passwordgen.model.DatabaseManager;
 import com.keepmoving.yuan.passwordgen.model.bean.KeyBean;
 import com.keepmoving.yuan.passwordgen.util.ToastUtils;
@@ -28,7 +32,7 @@ import com.yuan.passwordcore.PasswordCreator;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends Activity implements View.OnClickListener, AdapterView.OnItemClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, AdapterView.OnItemClickListener {
 
     private static final String PREFERENCE_NAME = "com.keepmoving.yuan.passwordgen";
     private static final String PRIVATE_KEY = "private_key";
@@ -57,6 +61,11 @@ public class MainActivity extends Activity implements View.OnClickListener, Adap
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        initView();
+        initData(savedInstanceState);
+    }
+
+    private void initView() {
         keyText = (PwdEditText) findViewById(R.id.key_text);
         domainText = (ClearEditText) findViewById(R.id.domain_text);
         usernameText = (ClearEditText) findViewById(R.id.username_text);
@@ -79,8 +88,24 @@ public class MainActivity extends Activity implements View.OnClickListener, Adap
 
         domainText.setOnItemClickListener(this);
         usernameText.setOnItemClickListener(this);
+    }
 
-        initData(savedInstanceState);
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.main_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.settings:
+                // TODO: 2018/1/8 跳转设置页面
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
@@ -200,7 +225,7 @@ public class MainActivity extends Activity implements View.OnClickListener, Adap
         MainApplication.getDataIOHandler().post(new Runnable() {
             @Override
             public void run() {
-                DatabaseManager.getInstance().createOrUpdateKey(keyBean);
+                DataCenter.getInstance().createOrUpdateKey(keyBean);
             }
         });
 
@@ -229,9 +254,9 @@ public class MainActivity extends Activity implements View.OnClickListener, Adap
         public void run() {
             final KeyBean keyBean;
             if (!TextUtils.isEmpty(mUserName) && !TextUtils.isEmpty(mDomain)) {
-                keyBean = DatabaseManager.getInstance().getMatchKey(mDomain, mUserName);
+                keyBean = DataCenter.getInstance().getMatchKey(mDomain, mUserName);
             } else if (!TextUtils.isEmpty(mDomain)) {
-                keyBean = DatabaseManager.getInstance().getMatchKey(mDomain);
+                keyBean = DataCenter.getInstance().getMatchKey(mDomain);
             } else {
                 keyBean = null;
             }
@@ -324,9 +349,9 @@ public class MainActivity extends Activity implements View.OnClickListener, Adap
                 } else {
                     List<String> values = null;
                     if (mDataType == DATA_TYPE_DOMAIN) {
-                        values = DatabaseManager.getInstance().getSupportList((String) constraint);
+                        values = DataCenter.getInstance().getSupportList((String) constraint);
                     } else if (mDataType == DATA_TYPE_USERNAME) {
-                        values = DatabaseManager.getInstance().getUserNameList((String) constraint);
+                        values = DataCenter.getInstance().getUserNameList((String) constraint);
                     }
                     results.values = values;
                     results.count = values.size();
