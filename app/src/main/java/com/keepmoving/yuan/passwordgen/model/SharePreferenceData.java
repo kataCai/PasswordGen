@@ -101,7 +101,7 @@ public class SharePreferenceData {
             } else {
                 Gson gson = new Gson();
                 KeyBean[] keyBeans = gson.fromJson(dataCache, KeyBean[].class);
-                keyBeanList = Arrays.asList(keyBeans);
+                keyBeanList = new ArrayList<>(Arrays.asList(keyBeans));
                 int index = keyBeanList.indexOf(keyBean);
                 if (index == -1) {
                     keyBeanList.add(keyBean);
