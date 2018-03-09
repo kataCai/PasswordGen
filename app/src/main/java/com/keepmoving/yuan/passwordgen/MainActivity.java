@@ -1,6 +1,7 @@
 package com.keepmoving.yuan.passwordgen;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
@@ -21,13 +22,13 @@ import android.widget.Filter;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
+import com.keepmoving.yuan.passwordLib.PasswordCreator;
 import com.keepmoving.yuan.passwordgen.model.DataCenter;
 import com.keepmoving.yuan.passwordgen.model.SharePreferenceData;
 import com.keepmoving.yuan.passwordgen.model.bean.KeyBean;
 import com.keepmoving.yuan.passwordgen.util.ToastUtils;
 import com.keepmoving.yuan.passwordgen.widget.ClearEditText;
 import com.keepmoving.yuan.passwordgen.widget.PwdEditText;
-import com.yuan.passwordcore.PasswordCreator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,11 +44,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String SAVE_KEY_LEN = "len";
     private static final String SAVE_KEY_ID = "key_id";
 
+    private static final int TYPE_NUMBER = 1;
+    private static final int TYPE_MIX = 2;
+    private static final int TYPE_NUMBER_CHAR = 3;
+    private static final int TYPE_CUSTOM = 4;
+
     private PwdEditText keyText;
     private ClearEditText domainText;
     private ClearEditText usernameText;
     private ClearEditText codeText;
     private ClearEditText lengthText;
+    private PwdEditText customPassEditor;
+    private View customEditorContaienr;
     private TextView btnCreate;
     private RadioGroup radioGroup;
     private EditText resultText;
@@ -77,12 +85,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btnCreate = (TextView) findViewById(R.id.btn_create);
         radioGroup = (RadioGroup) findViewById(R.id.type_group);
         resultText = (EditText) findViewById(R.id.passwrod_result);
+        customEditorContaienr = findViewById(R.id.custom_edit_container);
+        customPassEditor = (PwdEditText) findViewById(R.id.comsutom_password_editor);
 
         btnCreate.setOnClickListener(this);
         radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, @IdRes int checkedId) {
                 String result = resultText.getText().toString();
+                if (checkedId == R.id.custom_check) {
+                    customEditorContaienr.setVisibility(View.VISIBLE);
+                } else {
+                    customEditorContaienr.setVisibility(View.GONE);
+                }
                 if (!TextUtils.isEmpty(result)) {
                     showCreatePassword();
                 }
@@ -104,7 +119,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.settings:
-                // TODO: 2018/1/8 跳转设置页面
+                Intent intent = new Intent();
+                intent.setClass(this, SettingActivity.class);
+                startActivity(intent);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -123,7 +140,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View v) {
-        showCreatePassword();
+        int id = v.getId();
+        if (id == R.id.btn_create) {
+            showCreatePassword();
+        }
     }
 
     @Override
@@ -211,38 +231,54 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         len = Integer.valueOf(length);
 
+        int type = getTypeForResId(radioGroup.getCheckedRadioButtonId());
+
+        String customPassword = customPassEditor.getText().toString();
+
         String password = "";
 
         int passwordType = radioGroup.getCheckedRadioButtonId();
         if (passwordType == R.id.number_check) {
+            customEditorContaienr.setVisibility(View.GONE);
             password = PasswordCreator.createNumberPassword(keyData, domain, userName, versionCode, len);
-        } else {
+        } else if (passwordType == R.id.mix_check) {
+            customEditorContaienr.setVisibility(View.GONE);
             password = PasswordCreator.createMixPassword(keyData, domain, userName, versionCode, len);
+        } else if (passwordType == R.id.num_chartor_check) {
+            customEditorContaienr.setVisibility(View.GONE);
+            password = PasswordCreator.createNumberCharactorPassword(keyData, domain, userName, versionCode, len);
+        } else if (passwordType == R.id.custom_check) {
+            customEditorContaienr.setVisibility(View.VISIBLE);
+            password = customPassword;
         }
         resultText.setText(password);
 
-        //保存到数据库
-        currentKeyBean = getMatchKey(domain, userName);
-        if (currentKeyBean == null) {
-            currentKeyBean = new KeyBean();
-        }
-        currentKeyBean.setSupport(domain);
-        currentKeyBean.setUsername(userName);
-        currentKeyBean.setVersion(version);
-        currentKeyBean.setPasswordLen(len);
-        currentKeyBean.setAccountName(SharePreferenceData.getLoginName());
-
-        MainApplication.getDataIOHandler().post(new Runnable() {
-            @Override
-            public void run() {
-                DataCenter.getInstance().createOrUpdateKey(currentKeyBean);
+        if (!TextUtils.isEmpty(password)) {
+            //保存到数据库
+            currentKeyBean = getMatchKey(domain, userName);
+            if (currentKeyBean == null) {
+                currentKeyBean = new KeyBean();
             }
-        });
+            currentKeyBean.setSupport(domain);
+            currentKeyBean.setUsername(userName);
+            currentKeyBean.setVersion(version);
+            currentKeyBean.setPasswordLen(len);
+            currentKeyBean.setAccountName(SharePreferenceData.getLoginName());
+            currentKeyBean.setType(type);
+            currentKeyBean.setCustomPassword(customPassword);
 
-        SharedPreferences sharedPreferences = getSharedPreferences(PREFERENCE_NAME, MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(PRIVATE_KEY, keyData);
-        editor.apply();
+            MainApplication.getDataIOHandler().post(new Runnable() {
+                @Override
+                public void run() {
+                    DataCenter.getInstance().createOrUpdateKey(currentKeyBean);
+                }
+            });
+
+            SharedPreferences sharedPreferences = getSharedPreferences(PREFERENCE_NAME, MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString(PRIVATE_KEY, keyData);
+            editor.apply();
+        }
     }
 
     /**
@@ -291,6 +327,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         String userName = currentKeyBean.getUsername();
                         int versionCode = currentKeyBean.getVersion();
                         int len = currentKeyBean.getPasswordLen();
+                        int type = currentKeyBean.getType();
+                        String customPassword = currentKeyBean.getCustomPassword();
 
                         if (!TextUtils.isEmpty(support)) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
@@ -320,9 +358,46 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 lengthText.setText(String.valueOf(len));
                             }
                         }
+
+                        int typeResId = getResIdForType(type);
+                        radioGroup.check(typeResId);
+
+                        if (type == TYPE_CUSTOM) {
+                            customPassEditor.setText(customPassword);
+                        }
                     }
                 }
             });
+        }
+    }
+
+    private int getResIdForType(int type) {
+        switch (type) {
+            case TYPE_NUMBER:
+                return R.id.number_check;
+            case TYPE_MIX:
+                return R.id.mix_check;
+            case TYPE_NUMBER_CHAR:
+                return R.id.num_chartor_check;
+            case TYPE_CUSTOM:
+                return R.id.custom_check;
+            default:
+                return R.id.number_check;
+        }
+    }
+
+    private int getTypeForResId(int resId) {
+        switch (resId) {
+            case R.id.number_check:
+                return TYPE_NUMBER;
+            case R.id.mix_check:
+                return TYPE_MIX;
+            case R.id.num_chartor_check:
+                return TYPE_NUMBER_CHAR;
+            case R.id.custom_check:
+                return TYPE_CUSTOM;
+            default:
+                return TYPE_NUMBER;
         }
     }
 

@@ -23,6 +23,7 @@ import cn.bmob.v3.listener.UpdateListener;
  */
 
 public class ServerDataManager {
+    private static final String TAG = "ServerDataManager";
     private static ServerDataManager sInstance;
 
     public static ServerDataManager getInstance() {
@@ -37,6 +38,7 @@ public class ServerDataManager {
     }
 
     private ServerDataManager() {
+        LogUtils.d(TAG, "init");
         Bmob.initialize(MainApplication.getContext(), "ae509c72a9f71ac3b17c7e0d1c77b0cc");
     }
 
@@ -50,6 +52,7 @@ public class ServerDataManager {
      * 获取所有公司列表
      */
     public void getSupportList() {
+        LogUtils.d(TAG, "getSupportList");
         BmobQuery<SupportBean> query = new BmobQuery<SupportBean>();
         query.setLimit(Integer.MAX_VALUE);
         query.findObjects(new FindListener<SupportBean>() {
@@ -74,6 +77,7 @@ public class ServerDataManager {
      * 获取当前用户的keys
      */
     public void getUserKeys() {
+        LogUtils.d(TAG, "getUserKeys");
         BmobQuery<KeyBean> query = new BmobQuery<KeyBean>();
         query.setLimit(Integer.MAX_VALUE);
         query.addWhereEqualTo("accountName", SharePreferenceData.getLoginName());
@@ -101,6 +105,7 @@ public class ServerDataManager {
      * @param keyBean
      */
     public void createOrUpdateKey(final KeyBean keyBean) {
+        LogUtils.d(TAG, "createOrUpdateKey");
         List<KeyBean> needUpdateList = SharePreferenceData.cacheKeyBean(keyBean);
         for (final KeyBean bean : needUpdateList) {
             final String keyId = bean.getObjectId();

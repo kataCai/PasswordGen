@@ -23,6 +23,7 @@ public class SharePreferenceData {
     private static final String DATA_NAME = "YUAN_PASSWORD";
 
     private static final String KEY_USERNAME = "KEY_USERNAME";
+    private static final String KEY_USE_SERVER_DATA = "KEY_USE_SERVER_DATA"; //是否使用服务器数据
     private static final String KEY_LAST_SYNC_TIME = "KEY_LAST_SYNC_TIME"; //上次同步时间
     private static final String KEY_DATA_NEED_SYNC = "KEY_DATA_NEED_SYNC"; //需要同步的数据
 
@@ -69,6 +70,14 @@ public class SharePreferenceData {
         long lastSynsTime = sSharedPreferences.getLong(KEY_LAST_SYNC_TIME, 0);
         boolean timeout = System.currentTimeMillis() - lastSynsTime >= SYNC_TIMEOUT;
         return timeout;
+    }
+
+    /**
+     * 是否同步服务端数据
+     * @return
+     */
+    public static boolean useServerData(){
+        return sSharedPreferences.getBoolean(KEY_USE_SERVER_DATA, false);
     }
 
     /**

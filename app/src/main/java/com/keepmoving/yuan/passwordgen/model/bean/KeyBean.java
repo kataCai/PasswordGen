@@ -16,6 +16,8 @@ public class KeyBean extends BmobObject {
     private String username;
     private int version;
     private int passwordLen;
+    private int type;
+    private String customPassword;
 
 
     public KeyBean() {
@@ -61,6 +63,22 @@ public class KeyBean extends BmobObject {
         this.passwordLen = passwordLen;
     }
 
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public String getCustomPassword() {
+        return customPassword;
+    }
+
+    public void setCustomPassword(String customPassword) {
+        this.customPassword = customPassword;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj == this) {
@@ -82,5 +100,7 @@ public class KeyBean extends BmobObject {
         username = keyBean.username;
         version = keyBean.version;
         passwordLen = keyBean.passwordLen;
+        type = keyBean.type;
+        customPassword = keyBean.customPassword;
     }
 }

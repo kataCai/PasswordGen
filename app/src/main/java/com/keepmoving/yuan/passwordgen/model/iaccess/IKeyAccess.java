@@ -11,13 +11,19 @@ import java.util.List;
  */
 
 public interface IKeyAccess {
+
+    /**
+     * 获取所有support数据
+     */
+    List<String> getWholeSupportList();
+
     /**
      * 获取模糊匹配的服务商列表
      *
      * @param support
      * @return
      */
-    public List<String> getMatchSupportList(String support);
+    List<String> getMatchSupportList(String support);
 
     /**
      * 获取模糊匹配的用户名列表
@@ -25,7 +31,13 @@ public interface IKeyAccess {
      * @param username
      * @return
      */
-    public List<String> getUserNameList(String username);
+    List<String> getUserNameList(String username);
+
+    /**
+     * 获取所有密码键值数据
+     * @return
+     */
+    List<KeyBean> getWholeKeyBeanList();
 
     /**
      * 获取匹配的秘钥信息
@@ -33,7 +45,7 @@ public interface IKeyAccess {
      * @param support 服务商名
      * @return
      */
-    public KeyBean getMatchKey(String support);
+    KeyBean getMatchKey(String support);
 
     /**
      * 获取匹配的秘钥信息
@@ -42,14 +54,14 @@ public interface IKeyAccess {
      * @param username 用户名
      * @return
      */
-    public KeyBean getMatchKey(String support, String username);
+    KeyBean getMatchKey(String support, String username);
 
     /**
      * 新建或者更新秘钥信息
      *
      * @param keyBean
      */
-    public void createOrUpdateKey(KeyBean keyBean);
+    void createOrUpdateKey(KeyBean keyBean);
 
     /**
      * 查看是否有匹配的秘钥信息
@@ -57,5 +69,5 @@ public interface IKeyAccess {
      * @param keyBean
      * @return
      */
-    public boolean hasMatchKey(KeyBean keyBean);
+    boolean hasMatchKey(KeyBean keyBean);
 }

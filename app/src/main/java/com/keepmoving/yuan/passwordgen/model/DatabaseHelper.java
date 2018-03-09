@@ -22,6 +22,7 @@ import com.keepmoving.yuan.passwordgen.util.LogUtils;
 import com.keepmoving.yuan.passwordgen.util.TokenProcessor;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -31,7 +32,7 @@ import java.util.Set;
 
 public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUserAccess {
 
-    private final static String DATABASE_NAME = "passwords.db";
+    public final static String DATABASE_NAME = "passwords.db";
     static final String SUPPORT_TABLE_NAME = "supports";
     static final String KEY_TABLE_NAME = "keys";
     static final String USER_TABLE_NAME = "users";
@@ -55,7 +56,16 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
             + KeyColumns.ACCOUNT_NAME + " text not null, "
             + KeyColumns.USER_NAME + " text, "
             + KeyColumns.VERSION + " integer default 1,"
-            + KeyColumns.LENGTH + " integer default 6)";
+            + KeyColumns.LENGTH + " integer default 6,"
+            + KeyColumns.TYPE + " integer default 0,"
+            + KeyColumns.CUSTOM_PASSWORD + " text)";
+
+
+    private static final String ALTER_TABLE_KEYS_ADD_COLUMN_TYPE = "ALTER TABLE "
+            + KEY_TABLE_NAME + " ADD COLUMN " + KeyColumns.TYPE + " integer default 0";
+
+    private static final String ALTER_TABLE_KEYS_ADD_CUSTOM_PASSWORD = "ALTER TABLE "
+            + KEY_TABLE_NAME + " ADD COLUMN " + KeyColumns.CUSTOM_PASSWORD + " text";
 
     private static final String CREATE_TABLE_USERS = "create table " + USER_TABLE_NAME + " ("
             + COLUMN_ID + " text, "
@@ -74,6 +84,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
         String USER_NAME = "_username";
         String VERSION = "_version";
         String LENGTH = "_len";
+        String TYPE = "_type";
+        String CUSTOM_PASSWORD = "_custom_password";
     }
 
     private interface SupportColumns extends BaseColumns {
@@ -112,10 +124,32 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        if(newVersion == 2){
+            db.execSQL(ALTER_TABLE_KEYS_ADD_COLUMN_TYPE);
+            db.execSQL(ALTER_TABLE_KEYS_ADD_CUSTOM_PASSWORD);
+        }
     }
 
     public void setSupportAddListener(SupportAddListener supportAddListener) {
         this.mSupportAddListener = supportAddListener;
+    }
+
+    @Override
+    public List<String> getWholeSupportList() {
+        initReadDatabase();
+        List<String> supoortList = new LinkedList<>();
+        Cursor cursor = mReadDatabase.query(SUPPORT_TABLE_NAME, null, null, null,
+                null, null, null, null);
+        int nameIndex = cursor.getColumnIndex(SupportColumns.NAME);
+        while (cursor.moveToNext()) {
+            if (nameIndex == -1) {
+                nameIndex = cursor.getColumnIndex(SupportColumns.NAME);
+            }
+            String support = cursor.getString(nameIndex);
+            supoortList.add(support);
+        }
+        cursor.close();
+        return supoortList;
     }
 
     public List<String> getMatchSupportList(String support) {
@@ -142,19 +176,26 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
         return new ArrayList<>(usernameSet);
     }
 
+    @Override
+    public List<KeyBean> getWholeKeyBeanList() {
+        Cursor cursor = mReadDatabase.query(KEY_TABLE_NAME, null, null, null,
+                null, null, null, null);
+        List<KeyBean> keyBeanList = new LinkedList<>();
+        while (cursor.moveToNext()) {
+            KeyBean keyBean = readKeyBeanFromDB(cursor);
+            keyBeanList.add(keyBean);
+        }
+        return keyBeanList;
+    }
+
     public KeyBean getMatchKey(String support) {
         initReadDatabase();
         Cursor cursor = mReadDatabase.query(KEY_TABLE_NAME, null,
                 KeyColumns.SUPPORT + " = ?", new String[]{support},
                 null, null, KeyColumns.USER_NAME + " asc", null);
         if (cursor.moveToFirst()) {
-            KeyBean keyBean = new KeyBean();
-            keyBean.setObjectId(cursor.getString(cursor.getColumnIndex(COLUMN_ID)));
-            keyBean.setSupport(support);
-            keyBean.setUsername(cursor.getString(cursor.getColumnIndex(KeyColumns.USER_NAME)));
-            keyBean.setVersion(cursor.getInt(cursor.getColumnIndex(KeyColumns.VERSION)));
-            keyBean.setPasswordLen(cursor.getInt(cursor.getColumnIndex(KeyColumns.LENGTH)));
-            keyBean.setAccountName(cursor.getString(cursor.getColumnIndex(KeyColumns.ACCOUNT_NAME)));
+            KeyBean keyBean = readKeyBeanFromDB(cursor);
+            cursor.close();
             return keyBean;
         }
         return null;
@@ -166,21 +207,36 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
                 KeyColumns.SUPPORT + " = ? and " + KeyColumns.USER_NAME + " = ?",
                 new String[]{support, username}, null, null, KeyColumns.USER_NAME + " asc", null);
         if (cursor.moveToFirst()) {
-            KeyBean keyBean = new KeyBean();
-            keyBean.setObjectId(cursor.getString(cursor.getColumnIndex(COLUMN_ID)));
-            keyBean.setSupport(support);
-            keyBean.setUsername(cursor.getString(cursor.getColumnIndex(KeyColumns.USER_NAME)));
-            keyBean.setVersion(cursor.getInt(cursor.getColumnIndex(KeyColumns.VERSION)));
-            keyBean.setPasswordLen(cursor.getInt(cursor.getColumnIndex(KeyColumns.LENGTH)));
-            keyBean.setAccountName(cursor.getString(cursor.getColumnIndex(KeyColumns.ACCOUNT_NAME)));
+            KeyBean keyBean = readKeyBeanFromDB(cursor);
+            cursor.close();
             return keyBean;
         }
         return null;
     }
 
+    private KeyBean readKeyBeanFromDB(Cursor cursor){
+        KeyBean keyBean = new KeyBean();
+        keyBean.setObjectId(cursor.getString(cursor.getColumnIndex(COLUMN_ID)));
+        keyBean.setSupport(cursor.getString(cursor.getColumnIndex(KeyColumns.SUPPORT)));
+        keyBean.setUsername(cursor.getString(cursor.getColumnIndex(KeyColumns.USER_NAME)));
+        keyBean.setVersion(cursor.getInt(cursor.getColumnIndex(KeyColumns.VERSION)));
+        keyBean.setPasswordLen(cursor.getInt(cursor.getColumnIndex(KeyColumns.LENGTH)));
+        keyBean.setAccountName(cursor.getString(cursor.getColumnIndex(KeyColumns.ACCOUNT_NAME)));
+        keyBean.setType(cursor.getInt(cursor.getColumnIndex(KeyColumns.TYPE)));
+        keyBean.setCustomPassword(cursor.getString(cursor.getColumnIndex(KeyColumns.CUSTOM_PASSWORD)));
+
+        return keyBean;
+    }
+
     public boolean hasMatchKey(KeyBean keyBean) {
         initReadDatabase();
-        return getMatchKey(keyBean.getSupport(), keyBean.getUsername()) != null;
+
+        Cursor cursor = mReadDatabase.query(KEY_TABLE_NAME, null,
+                KeyColumns.SUPPORT + " = ? and " + KeyColumns.USER_NAME + " = ?",
+                new String[]{keyBean.getSupport(), keyBean.getUsername()}, null, null, KeyColumns.USER_NAME + " asc", null);
+        boolean match = cursor.moveToFirst();
+        cursor.close();
+        return match;
     }
 
     boolean hasMatchSupport(String supportName) {
@@ -189,7 +245,10 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
         Cursor cursor = mReadDatabase.query(SUPPORT_TABLE_NAME, new String[]{SupportColumns.NAME},
                 SupportColumns.NAME + " = ?", new String[]{supportName},
                 null, null, null, null);
-        return cursor.moveToFirst();
+
+        boolean match = cursor.moveToFirst();
+        cursor.close();
+        return match;
     }
 
     public void createOrUpdateKey(KeyBean keyBean) {
@@ -205,6 +264,9 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
         if (keyBean.getPasswordLen() != 0) {
             contentValues.put(KeyColumns.LENGTH, keyBean.getPasswordLen());
         }
+        contentValues.put(KeyColumns.TYPE, keyBean.getType());
+        contentValues.put(KeyColumns.CUSTOM_PASSWORD, keyBean.getCustomPassword());
+
         if (hasMatchKey(keyBean)) {
             mWriteDatabase.update(KEY_TABLE_NAME, contentValues,
                     KeyColumns.SUPPORT + " = ? and " + KeyColumns.USER_NAME + " = ?",
@@ -252,7 +314,6 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
         if (isLogin()) {
             logOut();
         }
-        login(userBean);
 
         SharePreferenceData.login(userBean.getName());
     }

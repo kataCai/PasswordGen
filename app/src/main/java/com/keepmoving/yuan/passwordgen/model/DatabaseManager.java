@@ -15,7 +15,7 @@ import java.util.List;
 public class DatabaseManager implements IKeyAccess, IUserAccess {
 
     private static DatabaseManager sInstance;
-    private final static int DATABASE_VERSION = 1;
+    private final static int DATABASE_VERSION = 2;
 
     private DatabaseHelper mDataHelper;
 
@@ -32,6 +32,11 @@ public class DatabaseManager implements IKeyAccess, IUserAccess {
 
     private DatabaseManager() {
         mDataHelper = DatabaseHelper.getInstance(DATABASE_VERSION);
+    }
+
+    @Override
+    public List<String> getWholeSupportList() {
+        return null;
     }
 
     /**
@@ -69,6 +74,11 @@ public class DatabaseManager implements IKeyAccess, IUserAccess {
      */
     public List<String> getUserNameList(String username) {
         return mDataHelper.getUserNameList(username);
+    }
+
+    @Override
+    public List<KeyBean> getWholeKeyBeanList() {
+        return null;
     }
 
     /**

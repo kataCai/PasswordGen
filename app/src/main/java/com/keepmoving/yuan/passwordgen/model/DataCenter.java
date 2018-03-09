@@ -46,9 +46,16 @@ public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.Da
 
     private DataCenter() {
         mDatabaseManager = DatabaseManager.getInstance();
-        mServerDataManager = ServerDataManager.getInstance();
         mDatabaseManager.setAddSupportListener(this);
-        mServerDataManager.setDataCallback(this);
+        if(SharePreferenceData.useServerData()){
+            mServerDataManager = ServerDataManager.getInstance();
+            mServerDataManager.setDataCallback(this);
+        }
+    }
+
+    @Override
+    public List<String> getWholeSupportList() {
+        return mDatabaseManager.getWholeSupportList();
     }
 
     @Override
@@ -59,6 +66,11 @@ public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.Da
     @Override
     public List<String> getUserNameList(String username) {
         return mDatabaseManager.getUserNameList(username);
+    }
+
+    @Override
+    public List<KeyBean> getWholeKeyBeanList() {
+        return mDatabaseManager.getWholeKeyBeanList();
     }
 
     @Override
@@ -73,7 +85,12 @@ public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.Da
 
     @Override
     public void createOrUpdateKey(KeyBean keyBean) {
-        mServerDataManager.createOrUpdateKey(keyBean);
+        if(mServerDataManager != null){
+            mServerDataManager.createOrUpdateKey(keyBean);
+        }
+        if(mDatabaseManager != null){
+            mDatabaseManager.createOrUpdateKey(keyBean);
+        }
     }
 
     @Override
@@ -100,7 +117,7 @@ public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.Da
      * 同步本地数据和服务端数据
      */
     public void syncData() {
-        if (SharePreferenceData.needToSync()) {
+        if (SharePreferenceData.needToSync() && SharePreferenceData.useServerData()) {
             loadCountAtomic.set(2);
             mServerDataManager.getSupportList();
 
@@ -156,38 +173,42 @@ public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.Da
 
     @Override
     public void needAddSupport(final String support) {
-        BmobQuery<SupportBean> query = new BmobQuery<>();
-        query.addWhereEqualTo("name", support);
-        query.findObjects(new FindListener<SupportBean>() {
-            @Override
-            public void done(List<SupportBean> list, BmobException e) {
-                if (e == null) {
-                    if (list == null || list.isEmpty()) {
-                        LogUtils.d(TAG, "support:%s is not exist in server", support);
+        if (SharePreferenceData.useServerData()) {
+            BmobQuery<SupportBean> query = new BmobQuery<>();
+            query.addWhereEqualTo("name", support);
+            query.findObjects(new FindListener<SupportBean>() {
+                @Override
+                public void done(List<SupportBean> list, BmobException e) {
+                    if (e == null) {
+                        if (list == null || list.isEmpty()) {
+                            LogUtils.d(TAG, "support:%s is not exist in server", support);
 
-                        final SupportBean supportBean = new SupportBean();
-                        supportBean.setName(support);
-                        supportBean.save(new SaveListener<String>() {
-                            @Override
-                            public void done(String objectId, BmobException e) {
-                                if (e == null) {
-                                    LogUtils.d(TAG, "add support %s to server success", support);
-                                    supportBean.setObjectId(objectId);
-                                    mDatabaseManager.addSupport(supportBean);
-                                } else {
-                                    LogUtils.e(e);
+                            final SupportBean supportBean = new SupportBean();
+                            supportBean.setName(support);
+                            supportBean.save(new SaveListener<String>() {
+                                @Override
+                                public void done(String objectId, BmobException e) {
+                                    if (e == null) {
+                                        LogUtils.d(TAG, "add support %s to server success", support);
+                                        supportBean.setObjectId(objectId);
+                                        mDatabaseManager.addSupport(supportBean);
+                                    } else {
+                                        LogUtils.e(e);
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        } else {
+                            LogUtils.d(TAG, "support:%s already exist in server", support);
+                        }
                     } else {
-                        LogUtils.d(TAG, "support:%s already exist in server", support);
+                        LogUtils.e(e);
                     }
-                } else {
-                    LogUtils.e(e);
                 }
-            }
-        });
-
-
+            });
+        } else {
+            final SupportBean supportBean = new SupportBean();
+            supportBean.setName(support);
+            mDatabaseManager.addSupport(supportBean);
+        }
     }
 }

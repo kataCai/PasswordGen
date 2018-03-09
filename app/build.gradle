@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    buildToolsVersion '27.0.2'
 
     useLibrary 'org.apache.http.legacy'
 
@@ -28,33 +28,30 @@ android {
         }
     }
 
-    configurations{
+    configurations {
         all*.exclude module: 'okhttp'
         all*.exclude module: 'okio'
     }
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.android.support.constraint:constraint-layout:1.1.2'
+    implementation 'com.android.support:design:25.4.0'
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    compile 'com.android.support:appcompat-v7:25.+'
+    implementation 'com.android.support:appcompat-v7:25.+'
     testCompile 'junit:junit:4.12'
-    compile files('libs/PasswordCore.jar')
-
-    compile 'com.jakewharton:butterknife:8.4.0'
-
-    compile('com.squareup.retrofit2:retrofit:2.1.0', {
+    implementation 'com.jakewharton:butterknife:8.4.0'
+    implementation('com.squareup.retrofit2:retrofit:2.1.0', {
         exclude module: 'okio'
         exclude group: 'com.squareup.okio'
     })
-
-    compile('com.squareup.retrofit2:converter-gson:2.1.0', {
+    implementation('com.squareup.retrofit2:converter-gson:2.1.0', {
         exclude group: 'com.google.code.gson'
     })
-
-    compile 'com.orhanobut:logger:2.1.1'
-
-    compile 'cn.bmob.android:bmob-sdk:3.5.5'
+    implementation 'com.orhanobut:logger:2.1.1'
+    implementation 'cn.bmob.android:bmob-sdk:3.5.5'
+    implementation project(':password-lib')
 }
