@@ -8,6 +8,7 @@ import android.text.TextUtils;
 import com.google.gson.Gson;
 import com.keepmoving.yuan.passwordgen.MainApplication;
 import com.keepmoving.yuan.passwordgen.model.bean.KeyBean;
+import com.keepmoving.yuan.passwordgen.util.LogUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,16 +68,33 @@ public class SharePreferenceData {
     public static boolean needToSync() {
         long lastSynsTime = sSharedPreferences.getLong(KEY_LAST_SYNC_TIME, 0);
         boolean timeout = System.currentTimeMillis() - lastSynsTime >= SYNC_TIMEOUT;
+        return timeout;
+    }
+
+    /**
+     * 获取还没有没有更新到服务端的keybean
+     *
+     * @return
+     */
+    public static List<KeyBean> getDirtyKeyBeans() {
         synchronized (KEY_DATA_NEED_SYNC) {
+            List<KeyBean> keyBeanList = null;
             String dataCache = sSharedPreferences.getString(KEY_DATA_NEED_SYNC, "");
-            return timeout || !TextUtils.isEmpty(dataCache);
+            if (!TextUtils.isEmpty(dataCache)) {
+                Gson gson = new Gson();
+                KeyBean[] keyBeans = gson.fromJson(dataCache, KeyBean[].class);
+                keyBeanList = new ArrayList<>(Arrays.asList(keyBeans));
+            }
+            return keyBeanList;
         }
     }
+
 
     /**
      * 同步成功，清除标志
      */
     public static void endSync() {
+        LogUtils.i("endSync data from server");
         Editor editor = sSharedPreferences.edit();
         editor.putLong(KEY_LAST_SYNC_TIME, System.currentTimeMillis());
         synchronized (KEY_DATA_NEED_SYNC) {
@@ -91,10 +109,10 @@ public class SharePreferenceData {
      * @param keyBean
      * @return
      */
-    public static void cacheKeyBean(KeyBean keyBean) {
+    public static List<KeyBean> cacheKeyBean(KeyBean keyBean) {
+        List<KeyBean> keyBeanList = null;
         synchronized (KEY_DATA_NEED_SYNC) {
             String dataCache = sSharedPreferences.getString(KEY_DATA_NEED_SYNC, "");
-            List<KeyBean> keyBeanList = null;
             if (TextUtils.isEmpty(dataCache)) {
                 keyBeanList = new ArrayList<>(1);
                 keyBeanList.add(keyBean);
@@ -118,6 +136,8 @@ public class SharePreferenceData {
             editor.putString(KEY_DATA_NEED_SYNC, dataCache);
             editor.apply();
         }
+
+        return keyBeanList;
     }
 
     /**
@@ -132,7 +152,7 @@ public class SharePreferenceData {
             if (!TextUtils.isEmpty(dataCache)) {
                 Gson gson = new Gson();
                 KeyBean[] keyBeans = gson.fromJson(dataCache, KeyBean[].class);
-                keyBeanList = Arrays.asList(keyBeans);
+                keyBeanList = new ArrayList<>(Arrays.asList(keyBeans));
                 keyBeanList.remove(keyBean);
             }
 

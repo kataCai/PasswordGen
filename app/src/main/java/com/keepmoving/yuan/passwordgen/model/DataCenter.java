@@ -1,11 +1,19 @@
 package com.keepmoving.yuan.passwordgen.model;
 
 import com.keepmoving.yuan.passwordgen.model.bean.KeyBean;
+import com.keepmoving.yuan.passwordgen.model.bean.SupportBean;
 import com.keepmoving.yuan.passwordgen.model.bean.UserBean;
 import com.keepmoving.yuan.passwordgen.model.iaccess.IKeyAccess;
 import com.keepmoving.yuan.passwordgen.model.iaccess.IUserAccess;
+import com.keepmoving.yuan.passwordgen.util.LogUtils;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import cn.bmob.v3.BmobQuery;
+import cn.bmob.v3.exception.BmobException;
+import cn.bmob.v3.listener.FindListener;
+import cn.bmob.v3.listener.SaveListener;
 
 /**
  * Created by caihanyuan on 2018/1/9.
@@ -15,12 +23,15 @@ import java.util.List;
  * 主要功能： 本地数据缓存，网络数据请求，本地和网络数据同步
  */
 
-public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.DataCallback {
+public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.DataCallback, DatabaseHelper.SupportAddListener {
+    private static final String TAG = DataCenter.class.getSimpleName();
 
     private static DataCenter sInstance;
 
     private DatabaseManager mDatabaseManager;
     private ServerDataManager mServerDataManager;
+
+    private AtomicInteger loadCountAtomic = new AtomicInteger(0);
 
     public static DataCenter getInstance() {
         if (sInstance == null) {
@@ -36,12 +47,13 @@ public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.Da
     private DataCenter() {
         mDatabaseManager = DatabaseManager.getInstance();
         mServerDataManager = ServerDataManager.getInstance();
+        mDatabaseManager.setAddSupportListener(this);
         mServerDataManager.setDataCallback(this);
     }
 
     @Override
-    public List<String> getSupportList(String support) {
-        return mDatabaseManager.getSupportList(support);
+    public List<String> getMatchSupportList(String support) {
+        return mDatabaseManager.getMatchSupportList(support);
     }
 
     @Override
@@ -61,7 +73,6 @@ public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.Da
 
     @Override
     public void createOrUpdateKey(KeyBean keyBean) {
-        mDatabaseManager.createOrUpdateKey(keyBean);
         mServerDataManager.createOrUpdateKey(keyBean);
     }
 
@@ -90,8 +101,22 @@ public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.Da
      */
     public void syncData() {
         if (SharePreferenceData.needToSync()) {
+            loadCountAtomic.set(2);
             mServerDataManager.getSupportList();
-            mServerDataManager.getUserKeys();
+
+            List<KeyBean> keyBeanList = SharePreferenceData.getDirtyKeyBeans();
+            if (keyBeanList == null || keyBeanList.isEmpty()) {
+                mServerDataManager.getUserKeys();
+            } else {
+                for (KeyBean keyBean : keyBeanList) {
+                    createOrUpdateKey(keyBean);
+                }
+                int count = loadCountAtomic.decrementAndGet();
+                if (count == 0) {
+                    SharePreferenceData.endSync();
+                }
+            }
+
         }
     }
 
@@ -101,17 +126,68 @@ public class DataCenter implements IKeyAccess, IUserAccess, ServerDataManager.Da
     }
 
     @Override
-    public void onGetSupportList(boolean success, String... suportList) {
-
+    public void onGetSupportList(boolean success, List<SupportBean> suportList) {
+        if (success) {
+            mDatabaseManager.syncSupportList(suportList);
+        }
+        int count = loadCountAtomic.decrementAndGet();
+        if (count == 0) {
+            SharePreferenceData.endSync();
+        }
     }
 
     @Override
-    public void onGetUserKeys(boolean success, String username, KeyBean... keyBeans) {
-
+    public void onGetUserKeys(boolean success, List<KeyBean> keyBeans) {
+        if (success) {
+            mDatabaseManager.syncKeyList(keyBeans);
+        }
+        int count = loadCountAtomic.decrementAndGet();
+        if (count == 0) {
+            SharePreferenceData.endSync();
+        }
     }
 
     @Override
     public void onKeyUpdate(KeyBean keyBean, boolean success) {
+        if (success) {
+            mDatabaseManager.createOrUpdateKey(keyBean);
+        }
+    }
+
+    @Override
+    public void needAddSupport(final String support) {
+        BmobQuery<SupportBean> query = new BmobQuery<>();
+        query.addWhereEqualTo("name", support);
+        query.findObjects(new FindListener<SupportBean>() {
+            @Override
+            public void done(List<SupportBean> list, BmobException e) {
+                if (e == null) {
+                    if (list == null || list.isEmpty()) {
+                        LogUtils.d(TAG, "support:%s is not exist in server", support);
+
+                        final SupportBean supportBean = new SupportBean();
+                        supportBean.setName(support);
+                        supportBean.save(new SaveListener<String>() {
+                            @Override
+                            public void done(String objectId, BmobException e) {
+                                if (e == null) {
+                                    LogUtils.d(TAG, "add support %s to server success", support);
+                                    supportBean.setObjectId(objectId);
+                                    mDatabaseManager.addSupport(supportBean);
+                                } else {
+                                    LogUtils.e(e);
+                                }
+                            }
+                        });
+                    } else {
+                        LogUtils.d(TAG, "support:%s already exist in server", support);
+                    }
+                } else {
+                    LogUtils.e(e);
+                }
+            }
+        });
+
 
     }
 }

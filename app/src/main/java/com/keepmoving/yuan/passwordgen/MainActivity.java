@@ -22,7 +22,7 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import com.keepmoving.yuan.passwordgen.model.DataCenter;
-import com.keepmoving.yuan.passwordgen.model.DatabaseManager;
+import com.keepmoving.yuan.passwordgen.model.SharePreferenceData;
 import com.keepmoving.yuan.passwordgen.model.bean.KeyBean;
 import com.keepmoving.yuan.passwordgen.util.ToastUtils;
 import com.keepmoving.yuan.passwordgen.widget.ClearEditText;
@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String SAVE_KEY_USERNAME = "username";
     private static final String SAVE_KEY_VERSION = "version";
     private static final String SAVE_KEY_LEN = "len";
+    private static final String SAVE_KEY_ID = "key_id";
 
     private PwdEditText keyText;
     private ClearEditText domainText;
@@ -55,6 +56,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ArrayAdapter<String> usernameAdapter;
 
     private GetKeyRunnable getKeyRunnable;
+
+    private KeyBean currentKeyBean = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,6 +114,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        outState.putSerializable(SAVE_KEY_ID, currentKeyBean);
         outState.putString(SAVE_KEY_SUPPORT, domainText.getText().toString());
         outState.putString(SAVE_KEY_USERNAME, usernameText.getText().toString());
         outState.putString(SAVE_KEY_VERSION, codeText.getText().toString());
@@ -153,6 +157,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         if (savedInstanceState != null) {
+            currentKeyBean = (KeyBean) savedInstanceState.getSerializable(SAVE_KEY_ID);
             String support = savedInstanceState.getString(SAVE_KEY_SUPPORT);
             String username = savedInstanceState.getString(SAVE_KEY_USERNAME);
             String version = savedInstanceState.getString(SAVE_KEY_VERSION);
@@ -217,15 +222,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         resultText.setText(password);
 
         //保存到数据库
-        final KeyBean keyBean = new KeyBean();
-        keyBean.setSupport(domain);
-        keyBean.setUsername(userName);
-        keyBean.setVersion(version);
-        keyBean.setPasswordLen(len);
+        currentKeyBean = getMatchKey(domain, userName);
+        if (currentKeyBean == null) {
+            currentKeyBean = new KeyBean();
+        }
+        currentKeyBean.setSupport(domain);
+        currentKeyBean.setUsername(userName);
+        currentKeyBean.setVersion(version);
+        currentKeyBean.setPasswordLen(len);
+        currentKeyBean.setAccountName(SharePreferenceData.getLoginName());
+
         MainApplication.getDataIOHandler().post(new Runnable() {
             @Override
             public void run() {
-                DataCenter.getInstance().createOrUpdateKey(keyBean);
+                DataCenter.getInstance().createOrUpdateKey(currentKeyBean);
             }
         });
 
@@ -233,6 +243,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString(PRIVATE_KEY, keyData);
         editor.apply();
+    }
+
+    /**
+     * 获取匹配的key
+     *
+     * @param support
+     * @param username
+     * @return
+     */
+    private KeyBean getMatchKey(String support, String username) {
+        KeyBean keyBean = null;
+        if (!TextUtils.isEmpty(username) && !TextUtils.isEmpty(support)) {
+            keyBean = DataCenter.getInstance().getMatchKey(support, username);
+        } else if (!TextUtils.isEmpty(support)) {
+            keyBean = DataCenter.getInstance().getMatchKey(support);
+        } else {
+            keyBean = null;
+        }
+        return keyBean;
     }
 
     /**
@@ -252,23 +281,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         @Override
         public void run() {
-            final KeyBean keyBean;
-            if (!TextUtils.isEmpty(mUserName) && !TextUtils.isEmpty(mDomain)) {
-                keyBean = DataCenter.getInstance().getMatchKey(mDomain, mUserName);
-            } else if (!TextUtils.isEmpty(mDomain)) {
-                keyBean = DataCenter.getInstance().getMatchKey(mDomain);
-            } else {
-                keyBean = null;
-            }
+            currentKeyBean = getMatchKey(mDomain, mUserName);
 
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    if (keyBean != null) {
-                        String support = keyBean.getSupport();
-                        String userName = keyBean.getUsername();
-                        int versionCode = keyBean.getVersion();
-                        int len = keyBean.getPasswordLen();
+                    if (currentKeyBean != null) {
+                        String support = currentKeyBean.getSupport();
+                        String userName = currentKeyBean.getUsername();
+                        int versionCode = currentKeyBean.getVersion();
+                        int len = currentKeyBean.getPasswordLen();
 
                         if (!TextUtils.isEmpty(support)) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
@@ -349,7 +371,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 } else {
                     List<String> values = null;
                     if (mDataType == DATA_TYPE_DOMAIN) {
-                        values = DataCenter.getInstance().getSupportList((String) constraint);
+                        values = DataCenter.getInstance().getMatchSupportList((String) constraint);
                     } else if (mDataType == DATA_TYPE_USERNAME) {
                         values = DataCenter.getInstance().getUserNameList((String) constraint);
                     }

@@ -1,16 +1,16 @@
 package com.keepmoving.yuan.passwordgen.model.bean;
 
-import android.os.Parcel;
-import android.os.Parcelable;
 import android.text.TextUtils;
 
 import com.keepmoving.yuan.passwordgen.model.SharePreferenceData;
+
+import cn.bmob.v3.BmobObject;
 
 /**
  * Created by caihanyuan on 2017/11/19.
  */
 
-public class KeyBean implements Parcelable {
+public class KeyBean extends BmobObject {
     private String support;
     private String accountName;
     private String username;
@@ -21,26 +21,6 @@ public class KeyBean implements Parcelable {
     public KeyBean() {
     }
 
-    protected KeyBean(Parcel in) {
-        support = in.readString();
-        accountName = in.readString();
-        username = in.readString();
-        version = in.readInt();
-        passwordLen = in.readInt();
-    }
-
-    public static final Creator<KeyBean> CREATOR = new Creator<KeyBean>() {
-        @Override
-        public KeyBean createFromParcel(Parcel in) {
-            return new KeyBean(in);
-        }
-
-        @Override
-        public KeyBean[] newArray(int size) {
-            return new KeyBean[size];
-        }
-    };
-
     public String getSupport() {
         return support;
     }
@@ -50,9 +30,6 @@ public class KeyBean implements Parcelable {
     }
 
     public String getAccountName() {
-        if (TextUtils.isEmpty(accountName)) {
-            accountName = SharePreferenceData.getLoginName();
-        }
         return accountName;
     }
 
@@ -85,11 +62,6 @@ public class KeyBean implements Parcelable {
     }
 
     @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
     public boolean equals(Object obj) {
         if (obj == this) {
             return true;
@@ -103,16 +75,8 @@ public class KeyBean implements Parcelable {
         }
     }
 
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(support);
-        dest.writeString(accountName);
-        dest.writeString(username);
-        dest.writeInt(version);
-        dest.writeInt(passwordLen);
-    }
-
     public void copy(KeyBean keyBean) {
+        setObjectId(keyBean.getObjectId());
         support = keyBean.support;
         accountName = keyBean.accountName;
         username = keyBean.username;

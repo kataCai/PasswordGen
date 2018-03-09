@@ -22,6 +22,7 @@ import java.io.FileFilter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -277,7 +278,7 @@ public class LogUtils {
                     long rootSize = getFileSize(rootDir);
                     if (rootSize >= mFolderMaxSize) {
                         File[] childFiles = rootDir.listFiles();
-                        List<File> fileList = Arrays.asList(childFiles);
+                        List<File> fileList = new ArrayList<>(Arrays.asList(childFiles));
                         Collections.sort(fileList, new Comparator<File>() {
                             @Override
                             public int compare(File file1, File file2) {
@@ -363,7 +364,7 @@ public class LogUtils {
                         }
                     });
                     if (childFiles != null && childFiles.length > 0) {
-                        List<File> fileList = Arrays.asList(childFiles);
+                        List<File> fileList = new ArrayList<>(Arrays.asList(childFiles));
                         Collections.sort(fileList, new Comparator<File>() {
                             @Override
                             public int compare(File file1, File file2) {

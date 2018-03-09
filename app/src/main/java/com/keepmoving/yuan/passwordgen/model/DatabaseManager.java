@@ -1,6 +1,7 @@
 package com.keepmoving.yuan.passwordgen.model;
 
 import com.keepmoving.yuan.passwordgen.model.bean.KeyBean;
+import com.keepmoving.yuan.passwordgen.model.bean.SupportBean;
 import com.keepmoving.yuan.passwordgen.model.bean.UserBean;
 import com.keepmoving.yuan.passwordgen.model.iaccess.IKeyAccess;
 import com.keepmoving.yuan.passwordgen.model.iaccess.IUserAccess;
@@ -39,8 +40,25 @@ public class DatabaseManager implements IKeyAccess, IUserAccess {
      * @param support
      * @return
      */
-    public List<String> getSupportList(String support) {
-        return mDataHelper.getSupportList(support);
+    public List<String> getMatchSupportList(String support) {
+        return mDataHelper.getMatchSupportList(support);
+    }
+
+    /**
+     * 更新供应商列表
+     *
+     * @param supportBeanList
+     */
+    public void syncSupportList(List<SupportBean> supportBeanList) {
+        mDataHelper.syncSupportList(supportBeanList);
+    }
+
+    /**
+     * 更新密码键值表
+     * @param keyBeanList
+     */
+    public void syncKeyList(List<KeyBean> keyBeanList){
+        mDataHelper.syncKeyList(keyBeanList);
     }
 
     /**
@@ -84,6 +102,15 @@ public class DatabaseManager implements IKeyAccess, IUserAccess {
     }
 
     /**
+     * 添加一个供应商
+     *
+     * @param supportBean
+     */
+    public void addSupport(SupportBean supportBean) {
+        mDataHelper.addSupport(supportBean);
+    }
+
+    /**
      * 查看是否有匹配的秘钥信息
      *
      * @param keyBean
@@ -111,5 +138,9 @@ public class DatabaseManager implements IKeyAccess, IUserAccess {
     @Override
     public UserBean getLoginUser() {
         return mDataHelper.getLoginUser();
+    }
+
+    public void setAddSupportListener(DatabaseHelper.SupportAddListener supportListener) {
+        mDataHelper.setSupportAddListener(supportListener);
     }
 }

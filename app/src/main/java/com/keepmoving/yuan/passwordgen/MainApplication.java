@@ -27,7 +27,8 @@ public class MainApplication extends Application {
         mDataIOThread = new HandlerThread("DataIOThread");
         mDataIOThread.start();
         mDataIOHandler = new Handler(mDataIOThread.getLooper());
-        DataCenter.getInstance();
+
+        DataCenter.getInstance().syncData();
     }
 
     public static Context getContext() {

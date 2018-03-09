@@ -22,6 +22,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 
 /**
@@ -168,6 +169,7 @@ public class HttpUtil {
         private static Retrofit buildService(String baseUrl) {
             Retrofit retrofit = new Retrofit.Builder()
                     .baseUrl(baseUrl)
+                    .addConverterFactory(GsonConverterFactory.create())
                     .client(getOkHttpClient())
                     .build();
             return retrofit;

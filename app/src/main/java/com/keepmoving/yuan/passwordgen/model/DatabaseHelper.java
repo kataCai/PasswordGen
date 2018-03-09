@@ -2,7 +2,6 @@ package com.keepmoving.yuan.passwordgen.model;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -14,16 +13,14 @@ import android.text.TextUtils;
 
 import com.keepmoving.yuan.passwordgen.MainApplication;
 import com.keepmoving.yuan.passwordgen.model.bean.KeyBean;
+import com.keepmoving.yuan.passwordgen.model.bean.SupportBean;
 import com.keepmoving.yuan.passwordgen.model.bean.UserBean;
 import com.keepmoving.yuan.passwordgen.model.iaccess.IKeyAccess;
 import com.keepmoving.yuan.passwordgen.model.iaccess.IUserAccess;
 import com.keepmoving.yuan.passwordgen.util.AppDataUtils;
+import com.keepmoving.yuan.passwordgen.util.LogUtils;
 import com.keepmoving.yuan.passwordgen.util.TokenProcessor;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -39,17 +36,21 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
     static final String KEY_TABLE_NAME = "keys";
     static final String USER_TABLE_NAME = "users";
 
+    static final String COLUMN_ID = "objectId";
+
     private static DatabaseHelper sInstance;
 
     private SQLiteDatabase mReadDatabase;
     private SQLiteDatabase mWriteDatabase;
 
+    private SupportAddListener mSupportAddListener;
+
     private static final String CREATE_TABLE_SUPPORT = "create table " + SUPPORT_TABLE_NAME + " ("
-            + SupportColumns._ID + " integer primary key autoincrement, "
+            + COLUMN_ID + " text, "
             + SupportColumns.NAME + " text)";
 
     private static final String CREATE_TABLE_KEYS = "create table " + KEY_TABLE_NAME + " ("
-            + KeyColumns._ID + " integer primary key autoincrement, "
+            + COLUMN_ID + " text, "
             + KeyColumns.SUPPORT + " text, "
             + KeyColumns.ACCOUNT_NAME + " text not null, "
             + KeyColumns.USER_NAME + " text, "
@@ -57,11 +58,15 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
             + KeyColumns.LENGTH + " integer default 6)";
 
     private static final String CREATE_TABLE_USERS = "create table " + USER_TABLE_NAME + " ("
-            + UsersColumns._ID + " integer primary key autoincrement, "
+            + COLUMN_ID + " text, "
             + UsersColumns.TOKEN + " text, "
             + UsersColumns.NAME + " text, "
             + UsersColumns.COMPANY + " text, "
             + UsersColumns.CHECK + " integer default 0)";
+
+    private static final String DROP_TABLE_SUPPORT = "DROP TABLE IF EXISTS " + SUPPORT_TABLE_NAME;
+
+    private static final String DROP_TABLE_KEYS = "DROP TABLE IF EXISTS " + KEY_TABLE_NAME;
 
     private interface KeyColumns extends BaseColumns {
         String SUPPORT = "_support";
@@ -100,10 +105,8 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(CREATE_TABLE_SUPPORT);
         db.execSQL(CREATE_TABLE_KEYS);
         db.execSQL(CREATE_TABLE_USERS);
-        initSupportData(db);
         initUserData(db);
     }
 
@@ -111,7 +114,11 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
     }
 
-    public List<String> getSupportList(String support) {
+    public void setSupportAddListener(SupportAddListener supportAddListener) {
+        this.mSupportAddListener = supportAddListener;
+    }
+
+    public List<String> getMatchSupportList(String support) {
         initReadDatabase();
         Cursor cursor = mReadDatabase.query(SUPPORT_TABLE_NAME, new String[]{SupportColumns.NAME},
                 SupportColumns.NAME + " like ?", new String[]{"%" + support + "%"},
@@ -142,10 +149,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
                 null, null, KeyColumns.USER_NAME + " asc", null);
         if (cursor.moveToFirst()) {
             KeyBean keyBean = new KeyBean();
+            keyBean.setObjectId(cursor.getString(cursor.getColumnIndex(COLUMN_ID)));
             keyBean.setSupport(support);
             keyBean.setUsername(cursor.getString(cursor.getColumnIndex(KeyColumns.USER_NAME)));
             keyBean.setVersion(cursor.getInt(cursor.getColumnIndex(KeyColumns.VERSION)));
             keyBean.setPasswordLen(cursor.getInt(cursor.getColumnIndex(KeyColumns.LENGTH)));
+            keyBean.setAccountName(cursor.getString(cursor.getColumnIndex(KeyColumns.ACCOUNT_NAME)));
             return keyBean;
         }
         return null;
@@ -158,10 +167,12 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
                 new String[]{support, username}, null, null, KeyColumns.USER_NAME + " asc", null);
         if (cursor.moveToFirst()) {
             KeyBean keyBean = new KeyBean();
+            keyBean.setObjectId(cursor.getString(cursor.getColumnIndex(COLUMN_ID)));
             keyBean.setSupport(support);
             keyBean.setUsername(cursor.getString(cursor.getColumnIndex(KeyColumns.USER_NAME)));
             keyBean.setVersion(cursor.getInt(cursor.getColumnIndex(KeyColumns.VERSION)));
             keyBean.setPasswordLen(cursor.getInt(cursor.getColumnIndex(KeyColumns.LENGTH)));
+            keyBean.setAccountName(cursor.getString(cursor.getColumnIndex(KeyColumns.ACCOUNT_NAME)));
             return keyBean;
         }
         return null;
@@ -172,7 +183,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
         return getMatchKey(keyBean.getSupport(), keyBean.getUsername()) != null;
     }
 
-    boolean hasMathSupport(String supportName) {
+    boolean hasMatchSupport(String supportName) {
         initReadDatabase();
 
         Cursor cursor = mReadDatabase.query(SUPPORT_TABLE_NAME, new String[]{SupportColumns.NAME},
@@ -184,6 +195,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
     public void createOrUpdateKey(KeyBean keyBean) {
         initWriteDatabase();
         ContentValues contentValues = new ContentValues();
+        contentValues.put(COLUMN_ID, keyBean.getObjectId());
         contentValues.put(KeyColumns.ACCOUNT_NAME, keyBean.getAccountName());
         contentValues.put(KeyColumns.SUPPORT, keyBean.getSupport());
         contentValues.put(KeyColumns.USER_NAME, keyBean.getUsername());
@@ -197,16 +209,31 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
             mWriteDatabase.update(KEY_TABLE_NAME, contentValues,
                     KeyColumns.SUPPORT + " = ? and " + KeyColumns.USER_NAME + " = ?",
                     new String[]{keyBean.getSupport(), keyBean.getUsername()});
+            LogUtils.d(LogUtils.TAG, "key update in database success");
 
         } else {
             mWriteDatabase.insert(KEY_TABLE_NAME, null, contentValues);
+            LogUtils.d(LogUtils.TAG, "key save in database success");
         }
 
-        if (!hasMathSupport(keyBean.getSupport())) {
-            ContentValues supportValue = new ContentValues();
-            supportValue.put(SupportColumns.NAME, keyBean.getSupport());
-            mWriteDatabase.insert(SUPPORT_TABLE_NAME, null, supportValue);
+        String supportName = keyBean.getSupport();
+        if (!hasMatchSupport(supportName)) {
+            if (mSupportAddListener != null) {
+                mSupportAddListener.needAddSupport(supportName);
+            }
         }
+    }
+
+    /**
+     * 添加一个供应商
+     *
+     * @param supportBean
+     */
+    public void addSupport(SupportBean supportBean) {
+        ContentValues supportValue = new ContentValues();
+        supportValue.put(COLUMN_ID, supportBean.getObjectId());
+        supportValue.put(SupportColumns.NAME, supportBean.getName());
+        mWriteDatabase.insert(SUPPORT_TABLE_NAME, null, supportValue);
     }
 
     @Override
@@ -255,7 +282,7 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
                 null, null, null, null);
         if (cursor.moveToFirst()) {
             userBean = new UserBean();
-            userBean.setId(cursor.getInt(cursor.getColumnIndex(UsersColumns._ID)));
+            userBean.setObjectId(cursor.getString(cursor.getColumnIndex(COLUMN_ID)));
             userBean.setName(cursor.getString(cursor.getColumnIndex(UsersColumns.NAME)));
             userBean.setCompany(cursor.getString(cursor.getColumnIndex(UsersColumns.COMPANY)));
             userBean.setCheck(cursor.getInt(cursor.getColumnIndex(UsersColumns.CHECK)));
@@ -296,36 +323,106 @@ public class DatabaseHelper extends SQLiteOpenHelper implements IKeyAccess, IUse
         SharePreferenceData.login(userName);
     }
 
-    private void initSupportData(SQLiteDatabase sqLiteDatabase) {
-        new InitAsyncTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, sqLiteDatabase);
+    /**
+     * 更新供应商列表
+     *
+     * @param supportBeanList
+     */
+    public void syncSupportList(List<SupportBean> supportBeanList) {
+        SQLiteDatabase sqLiteDatabase = getWritableDatabase();
+        sqLiteDatabase.execSQL(DROP_TABLE_SUPPORT);
+        sqLiteDatabase.execSQL(CREATE_TABLE_SUPPORT);
+        new SyncSupportTask(supportBeanList).executeOnExecutor
+                (AsyncTask.THREAD_POOL_EXECUTOR, sqLiteDatabase);
     }
 
-    private static class InitAsyncTask extends AsyncTask<SQLiteDatabase, Integer, Boolean> {
+    /**
+     * 更新密码键值表
+     *
+     * @param keyBeanList
+     */
+    public void syncKeyList(List<KeyBean> keyBeanList) {
+        SQLiteDatabase sqLiteDatabase = getWritableDatabase();
+        sqLiteDatabase.execSQL(DROP_TABLE_KEYS);
+        sqLiteDatabase.execSQL(CREATE_TABLE_KEYS);
+        new SyncKeyListTask(keyBeanList).executeOnExecutor
+                (AsyncTask.THREAD_POOL_EXECUTOR, sqLiteDatabase);
+    }
+
+
+    private static class SyncSupportTask extends AsyncTask<SQLiteDatabase, Integer, Boolean> {
+
+        List<SupportBean> mSupportList;
+
+        public SyncSupportTask(List<SupportBean> supportList) {
+            this.mSupportList = supportList;
+        }
 
         @Override
         protected Boolean doInBackground(SQLiteDatabase... params) {
-            Context context = MainApplication.getContext();
-            AssetManager assetManager = context.getAssets();
             SQLiteDatabase database = params[0];
             try {
                 database.beginTransaction();
-                InputStream inputStream = assetManager.open("supports");
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-                String supportName = null;
-                while ((supportName = bufferedReader.readLine()) != null) {
+
+                for (SupportBean supportBean : mSupportList) {
                     ContentValues contentValues = new ContentValues();
-                    contentValues.put(SupportColumns.NAME, supportName);
+                    contentValues.put(COLUMN_ID, supportBean.getObjectId());
+                    contentValues.put(SupportColumns.NAME, supportBean.getName());
                     database.insert(SUPPORT_TABLE_NAME, null, contentValues);
                 }
-                bufferedReader.close();
+
                 database.setTransactionSuccessful();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                LogUtils.e(e);
                 return false;
             } finally {
                 database.endTransaction();
             }
             return true;
         }
+    }
+
+    private static class SyncKeyListTask extends AsyncTask<SQLiteDatabase, Integer, Boolean> {
+
+        List<KeyBean> mKeyBeanList;
+
+        public SyncKeyListTask(List<KeyBean> keyBeanList) {
+            this.mKeyBeanList = keyBeanList;
+        }
+
+        @Override
+        protected Boolean doInBackground(SQLiteDatabase... params) {
+            SQLiteDatabase database = params[0];
+            try {
+                database.beginTransaction();
+
+                for (KeyBean keyBean : mKeyBeanList) {
+                    ContentValues contentValues = new ContentValues();
+                    contentValues.put(COLUMN_ID, keyBean.getObjectId());
+                    contentValues.put(KeyColumns.SUPPORT, keyBean.getSupport());
+                    contentValues.put(KeyColumns.ACCOUNT_NAME, keyBean.getAccountName());
+                    contentValues.put(KeyColumns.USER_NAME, keyBean.getUsername());
+                    contentValues.put(KeyColumns.VERSION, keyBean.getVersion());
+                    contentValues.put(KeyColumns.LENGTH, keyBean.getPasswordLen());
+                    database.insert(KEY_TABLE_NAME, null, contentValues);
+                }
+
+                database.setTransactionSuccessful();
+            } catch (Exception e) {
+                LogUtils.e(e);
+                return false;
+            } finally {
+                database.endTransaction();
+            }
+            return true;
+        }
+    }
+
+
+    interface SupportAddListener {
+        /**
+         * 需要添加供应商名
+         */
+        void needAddSupport(String support);
     }
 }

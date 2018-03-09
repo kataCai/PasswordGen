@@ -17,7 +17,7 @@ public interface IKeyAccess {
      * @param support
      * @return
      */
-    public List<String> getSupportList(String support);
+    public List<String> getMatchSupportList(String support);
 
     /**
      * 获取模糊匹配的用户名列表
